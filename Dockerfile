@@ -2,13 +2,22 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Instalar curl para el healthcheck
+RUN apt-get update && apt-get install -y curl \
+    && rm -rf /var/lib/apt/lists/*
 
+# Copiar y instalar requerimientos
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar el resto de la aplicación
 COPY . .
 
-EXPOSE 8501
+# Exponer el puerto que usará la aplicación
+EXPOSE $PORT
 
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+# Healthcheck
+HEALTHCHECK CMD curl --fail http://localhost:$PORT/_stcore/health
 
-ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"] 
+# Comando para ejecutar la aplicación
+CMD gunicorn --worker-class uvicorn.workers.UvicornWorker --bind :$PORT app:app 
