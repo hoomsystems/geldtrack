@@ -1,0 +1,17 @@
+[server]
+port = 8502
+headless = true
+enableXsrfProtection = false
+enableCORS = false
+
+[theme]
+# ... otros ajustes de tema si existen ...
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
+
+[ui]
+hideSidebarNav = true 
