@@ -189,6 +189,7 @@ def show_main_menu():
     if 'cuenta_actual' not in st.session_state:
         st.session_state.cuenta_actual = None
         
+    show_account_selector()
     opcion = show_sidebar("main")
     
     if opcion == "App":

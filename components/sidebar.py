@@ -51,47 +51,6 @@ def apply_custom_css():
     """, unsafe_allow_html=True)
 
 def show_sidebar(active_page=""):
-    with st.sidebar:
-        st.write(f"{get_text('hola')}, {st.session_state.user_name}!")
-        
-        # Selector de cuenta
-        st.subheader(get_text('seleccionar_cuenta'))
-        
-        # Obtener cuentas del usuario
-        conn = sqlite3.connect('finanzas.db')
-        c = conn.cursor()
-        c.execute("""
-            SELECT c.id, c.nombre 
-            FROM cuentas c
-            JOIN usuarios_cuentas uc ON c.id = uc.cuenta_id
-            WHERE uc.usuario_id = ?
-        """, (st.session_state.user_id,))
-        cuentas = c.fetchall()
-        conn.close()
-        
-        # Crear lista de opciones
-        opciones = ["-- Seleccione una cuenta --"] + [cuenta[1] for cuenta in cuentas]
-        cuenta_index = 0
-        
-        # Si hay una cuenta actual, seleccionarla
-        if 'cuenta_actual' in st.session_state:
-            for i, cuenta in enumerate(cuentas):
-                if cuenta[0] == st.session_state.cuenta_actual:
-                    cuenta_index = i + 1
-                    break
-        
-        cuenta_seleccionada = st.selectbox(
-            get_text('cuenta'),
-            opciones,
-            index=cuenta_index
-        )
-        
-        if cuenta_seleccionada != "-- Seleccione una cuenta --":
-            cuenta_id = next(cuenta[0] for cuenta in cuentas if cuenta[1] == cuenta_seleccionada)
-            if cuenta_id != st.session_state.get('cuenta_actual'):
-                set_current_account(cuenta_id)
-                st.rerun()
-    
     apply_custom_css()
     
     if 'user_id' not in st.session_state or st.session_state.user_id is None:
