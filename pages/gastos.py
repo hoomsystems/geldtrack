@@ -166,6 +166,30 @@ def importar_gastos_desde_csv(cuenta_id, archivo_csv):
     except Exception as e:
         return False, f"Error al importar: {str(e)}"
 
+def actualizar_gasto(gasto_id, categoria_id, cantidad, lugar, fecha, notas):
+    conn = sqlite3.connect('finanzas.db')
+    c = conn.cursor()
+    try:
+        c.execute("""
+            UPDATE gastos 
+            SET categoria_id = ?, cantidad = ?, lugar = ?, fecha = ?, notas = ?
+            WHERE id = ?
+        """, (
+            int(categoria_id),
+            float(cantidad),
+            str(lugar),
+            fecha.strftime('%Y-%m-%d'),
+            str(notas) if notas else None,
+            gasto_id
+        ))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error al actualizar gasto: {e}")
+        return False
+    finally:
+        conn.close()
+
 def mostrar_contenido_gastos():
     if not st.session_state.cuenta_actual:
         st.warning(get_text('seleccione_cuenta'))
@@ -314,12 +338,15 @@ def mostrar_contenido_gastos():
         # Construir la consulta SQL según el mes seleccionado
         query = """
             SELECT 
+                g.id,
                 strftime('%d/%m/%Y', g.fecha) as fecha,
                 g.lugar,
                 g.cantidad,
                 c.nombre as categoria,
                 g.notas,
-                u.nombre as usuario
+                u.nombre as usuario,
+                g.categoria_id,
+                date(g.fecha) as fecha_original
             FROM gastos g
             JOIN categorias c ON g.categoria_id = c.id
             JOIN usuarios u ON g.usuario_id = u.id
@@ -337,23 +364,66 @@ def mostrar_contenido_gastos():
         gastos_df = pd.read_sql_query(query, conn, params=params)
         
         if not gastos_df.empty:
-            st.dataframe(
-                gastos_df,
-                column_config={
-                    "fecha": st.column_config.TextColumn(
-                        get_text('fecha')
-                    ),
-                    "lugar": get_text('lugar'),
-                    "cantidad": st.column_config.NumberColumn(
-                        get_text('cantidad'),
-                        format="$%.2f"
-                    ),
-                    "categoria": get_text('categoria'),
-                    "notas": get_text('notas'),
-                    "usuario": get_text('pagado_por')
-                },
-                hide_index=True
-            )
+            for _, gasto in gastos_df.iterrows():
+                with st.expander(f"📝 {gasto['lugar']} - ${gasto['cantidad']:,.2f} ({gasto['fecha']})"):
+                    with st.form(f"editar_gasto_{gasto['id']}"):
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            nueva_cantidad = st.number_input(
+                                get_text('cantidad'),
+                                min_value=0.01,
+                                step=0.01,
+                                format="%.2f",
+                                value=float(gasto['cantidad']),
+                                key=f"cantidad_{gasto['id']}"
+                            )
+                            nueva_categoria = st.selectbox(
+                                get_text('categoria'),
+                                options=categorias['nombre'].tolist(),
+                                index=categorias['nombre'].tolist().index(gasto['categoria']),
+                                key=f"categoria_{gasto['id']}"
+                            )
+                        
+                        with col2:
+                            nuevo_lugar = st.text_input(
+                                get_text('lugar'),
+                                value=gasto['lugar'],
+                                key=f"lugar_{gasto['id']}"
+                            )
+                            nueva_fecha = st.date_input(
+                                get_text('fecha'),
+                                value=pd.to_datetime(gasto['fecha_original']).date(),
+                                key=f"fecha_{gasto['id']}"
+                            )
+                        
+                        nuevas_notas = st.text_area(
+                            get_text('notas'),
+                            value=gasto['notas'] if pd.notna(gasto['notas']) else "",
+                            height=100,
+                            key=f"notas_{gasto['id']}"
+                        )
+                        
+                        col1, col2 = st.columns([1,4])
+                        with col1:
+                            if st.form_submit_button("💾 Guardar"):
+                                categoria_id = categorias[
+                                    categorias['nombre'] == nueva_categoria
+                                ]['id'].iloc[0]
+                                
+                                if actualizar_gasto(
+                                    gasto['id'],
+                                    categoria_id,
+                                    nueva_cantidad,
+                                    nuevo_lugar,
+                                    nueva_fecha,
+                                    nuevas_notas
+                                ):
+                                    st.success("Gasto actualizado correctamente")
+                                    time.sleep(0.5)
+                                    st.rerun()
+                                else:
+                                    st.error("Error al actualizar el gasto")
             
             # Mostrar total
             st.info(f"Total: ${gastos_df['cantidad'].sum():,.2f}")
