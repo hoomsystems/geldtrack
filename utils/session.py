@@ -12,28 +12,15 @@ def set_current_account(cuenta_id):
     cookie_manager.set('cuenta_actual', str(cuenta_id), expires_at=expiry)
 
 def clear_session():
-    # Limpiar cookies
+    # Primero limpiar el state
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    
+    # Luego limpiar cookies
     cookie_manager = get_cookie_manager()
-    cookie_manager.delete('user_id')
-    cookie_manager.delete('user_name')
-    cookie_manager.delete('user_email')
-    cookie_manager.delete('cuenta_actual')
+    all_cookies = cookie_manager.get_all()
+    for cookie_name in all_cookies:
+        cookie_manager.delete(cookie_name)
     
-    # Limpiar variables de sesión específicas
-    keys_to_clear = [
-        'user_id', 
-        'user_name', 
-        'user_email', 
-        'is_authenticated',
-        'cuenta_actual',
-        'usuario_editando',
-        'nombre_editando',
-        'email_editando'
-    ]
-    
-    for key in keys_to_clear:
-        if key in st.session_state:
-            del st.session_state[key]
-    
-    # Forzar la limpieza completa
-    st.session_state.clear() 
+    # Forzar rerun
+    st.rerun() 
