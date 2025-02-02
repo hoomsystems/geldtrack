@@ -358,18 +358,18 @@ def mostrar_contenido_configuracion():
             
             if cuentas:
                 for cuenta_id, nombre_cuenta in cuentas:
-                    col1, col2 = st.columns([2, 1])
+                    col1, col2, col3 = st.columns([2, 1, 1])
                     with col1:
                         tiene_acceso = st.checkbox(f"{get_text('acceso_a')} {nombre_cuenta}", key=f"acceso_{cuenta_id}")
                     with col2:
-                        if tiene_acceso:
-                            rol = st.selectbox(
-                                get_text('rol'),
-                                options=['viewer', 'editor', 'admin'],
-                                key=f"rol_{cuenta_id}",
-                                help=get_text('rol_help')
-                            )
-                            cuentas_acceso.append((cuenta_id, rol) if tiene_acceso else None)
+                        rol = st.selectbox(
+                            get_text('rol'),
+                            options=['viewer', 'editor', 'admin'],
+                            key=f"rol_{cuenta_id}",
+                            help=get_text('rol_help')
+                        )
+                    if tiene_acceso:
+                        cuentas_acceso.append((cuenta_id, rol))
             else:
                 st.warning(get_text('no_cuentas'))
             
